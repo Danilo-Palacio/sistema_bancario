@@ -33,7 +33,6 @@ def login(cookie):
 
     return usuario_login, conta_login, login_cliente
 
-    return faltam_horas, faltam_minutos
 
 
 def teste_dados_iguais(texto_dado):
