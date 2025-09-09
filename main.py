@@ -23,7 +23,7 @@ Para buscar um usuario digite - [2]
 def login(cookie):
 
     print("\nOlá Bem vindo ao sistema bancario!")
-    login_cliente = str(input("Favor, digite seu cpf para inicio: "))
+    login_cliente = input("Favor, digite seu cpf para inicio: ")
     usuario_login = pesquisa_cpf(login_cliente)
     print("Ok pesquisa de CPF")
     conta_login = pesquisa_conta(login_cliente)
@@ -61,18 +61,18 @@ def teste_dados_iguais(texto_dado):
             teste = False
             return teste
 
-def funcao_extrato(opcao_escolhida, conta_escolhida):
+def funcao_extrato(opcao_escolhida, classe_conta_escolhida):
     
     print("Opção escolhida - Extrato")
     print("\n=================== EXTRATO ===================")
-    if not historico[opcao_escolhida]:
+    if not transacoes[opcao_escolhida]:
         print("Não foram realaizadas movimentações.")  
 
     else: 
-        for chave, valor in historico[opcao_escolhida]:
+        for chave, valor in transacoes[opcao_escolhida]:
             print(f"{chave}                  {valor}")
             
-    saldo_atualizado = conta_escolhida.alterar_saldo(valor, conta_escolhida,acao = "deposito")
+    saldo_atualizado = classe_conta_escolhida.alterar_saldo(valor, classe_conta_escolhida,acao = "deposito")
 
     print(f"\nSaldo de : R$ {saldo_atualizado:.2f}")
     print("===============================================")
@@ -198,8 +198,9 @@ contas = {1:{
     "numero_transacao" : 0,}
 }
 '''
-historico = {
-    441:[]
+transacoes = {
+    441:{},
+    1:{'2025-09-07 23:11:36.579310': '+ R$ 35.00'}
 }
 
 class Conta:
@@ -208,7 +209,7 @@ class Conta:
         self._numero_conta = numero_conta
         self._agencia = agencia
         self._cpf = cpf
-        self._historico = Historico #PONTO DE ATENÇÃO!
+        self._historico = Historico(numero_conta) #PONTO DE ATENÇÃO!
 
     @property
     def saldo(self):
@@ -230,18 +231,17 @@ class Conta:
     def historico(self):
         return self._historico
     
-    def alterar_saldo(self, valor, conta_escolhida, acao):
+    def alterar_saldo(self, valor, classe_conta_escolhida, acao):
         if acao == "saque":
-            conta_escolhida.saldo -= int(valor)
+            classe_conta_escolhida.saldo -= int(valor)
         elif acao == "deposito":
-            conta_escolhida.saldo += int(valor)
+            classe_conta_escolhida.saldo += int(valor)
 
-        return conta_escolhida.saldo
-
+        return classe_conta_escolhida.saldo
     
     def nova_conta(cliente: "Cliente", numero:8): Conta
 
-    def sacar(self,valor, conta_escolhida):
+    def sacar(self,valor, classe_conta_escolhida):
         if valor == "" :
             print("Operação falhou! Insira um valor")              
 
@@ -251,34 +251,34 @@ class Conta:
             if valor < 0:
                 print("Operação falhou! Insira um valor positivo")
 
-            elif valor > conta_escolhida.saldo:
+            elif valor > classe_conta_escolhida.saldo:
                 print("Operação falhou! Não é possivel sacar o dinheiro por falta de saldo")
 
             elif valor > 500.00:
                 print("Operação falhou! Valor acima do limite por saque, escolha um valor abaixo de R$ 500,00")
 
             else:
-                conta_escolhida.numero_saques += 1
-                conta_escolhida.numero_transacao += 1
-                saldo_atualizado = conta_escolhida.alterar_saldo(valor, conta_escolhida,acao = "saque")
+                classe_conta_escolhida.numero_saques += 1
+                classe_conta_escolhida.numero_transacao += 1
+                saldo_atualizado = classe_conta_escolhida.alterar_saldo(valor, classe_conta_escolhida,acao = "saque")
                 print("\n===============================================\n")
                 print("Saque será realizado")
                 print(f"Saldo de R${saldo_atualizado}")
-                print(f"Ainda possui {conta_escolhida.limite_transacao - conta_escolhida.numero_transacao} transações.")
+                print(f"Ainda possui {classe_conta_escolhida.limite_transacao - classe_conta_escolhida.numero_transacao} transações.")
                 print("\n===============================================\n")
 
-    def depositar(self, valor, conta_escolhida):
+    def depositar(self, valor, classe_conta_escolhida):
         if valor != "":
             valor = float(valor)
             if valor > 0:
-                conta_escolhida.numero_depositos += 1
-                conta_escolhida.numero_transacao += 1
-                saldo_atualizado = conta_escolhida.alterar_saldo(valor, conta_escolhida,acao = "deposito")
+                classe_conta_escolhida.numero_depositos += 1
+                classe_conta_escolhida.numero_transacao += 1
+                saldo_atualizado = classe_conta_escolhida.alterar_saldo(valor, classe_conta_escolhida,acao = "deposito")
                 print("\n===============================================\n")
                 print(f"O novo saldo é de R${saldo_atualizado:.2f}")
-                print(f"Atualizado o Extrato, foram feitas {conta_escolhida.dados["numero_transacao"]} transações.")
+                print(f"Atualizado o Extrato, foram feitas {classe_conta_escolhida.dados["numero_transacao"]} transações.")
                 print("\n===============================================")
-
+                return True
             else:
                 print("Operação falhou! Insira um valor positivo")
 
@@ -297,8 +297,8 @@ class Saque(Transacao):
         
     def registrar(self, conta):
 
-        if conta_escolhida.sacar(valor, conta):
-            conta_escolhida.historico.update({agora.strftime("%d/%m/%Y %H:%M:%S"):f"- R$ {valor:.2f}"})
+        if classe_conta_escolhida.sacar(valor, conta):
+            classe_conta_escolhida.historico.update({agora.strftime("%d/%m/%Y %H:%M:%S"):f"- R$ {valor:.2f}"})
             return True
         return False
     
@@ -307,15 +307,40 @@ class Deposito(Transacao):
         self.valor = valor
         self.data = datetime.now()
 
-    def registrar(self, conta):
-        if conta_escolhida.depositar(valor, conta):
-            conta_escolhida.historico.update({agora.strftime("%d/%m/%Y %H:%M:%S"):f"- R$ {valor:.2f}"})
+    def registrar(self, classe_conta_escolhida, agora, numero_conta):
+        if classe_conta_escolhida.depositar(valor, classe_conta_escolhida):
+            classe_conta_escolhida.historico.adicionar_transacao(valor, classe_conta_escolhida, agora, numero_conta)
             return True
         return False
 
 class Historico:
-    def adicionar_transacao(transacao: Transacao, conta_escolhida):
-        pass
+    def __init__(self, numero_conta):
+        self._numero_conta = numero_conta
+        self._transacoes = transacoes
+
+
+    def adicionar_transacao(self,valor, numero_conta,agora,classe_conta_escolhida):
+        self._transacoes[numero_conta].update({str(agora): f"+ R$ {float(valor):.2f}"})
+        print("Adicionou a transaçao")
+
+        
+
+    def extrato(self, classe_conta_escolhida):
+        conta = classe_conta_escolhida.numero_conta
+        print("Opção escolhida - Extrato")
+        print("\n=================== EXTRATO ===================")
+
+        if not self._transacoes[conta]:
+            print("Não foram realizadas movimentações.")  
+
+        else:        
+            for chave, valor in self._transacoes[conta].items():
+                print(f"{chave}                  {valor}")
+            
+
+        print(f"\nSaldo de : R$ {classe_conta_escolhida.saldo:.2f}")
+        print("===============================================")
+        print("Extrato fechado")
 
 class ContaCorrente(Conta):
     def __init__(self, saldo, numero_conta, agencia, cpf, limite_transacao, limite_saques, limite_por_saque, numero_transacao, numero_saques, numero_depositos):
@@ -456,8 +481,6 @@ contas[1] = ContaCorrente(
     numero_depositos = 0
     )
 
-print(contas[1].dados["limite_por_saque"])
-
 tentativas_login = 0
 
 cookie_login = [0]
@@ -469,8 +492,6 @@ while True:
     
 
     if usuario_login == 1:
-        
-        print("\n================== Bem vindo ==================\n"),
         usuario_logado = usuarios[int(login_cliente)]
         print(f"Nome: {usuario_logado.dados["nome"]} \nCPF: {usuario_logado.dados["cpf"]}\n")
         
@@ -478,10 +499,12 @@ while True:
 
         contagem = 0
         conta_logada = 0
+        contas_usuario = {}
 
         for conta in contas_pesquisa:
             contagem += 1
             print(f"[{contagem}] {conta}")
+            contas_usuario.update({contagem : conta})
     
         menu_usuario_logado ="[n] Nova Conta Corrente\n[q] Sair"
 
@@ -531,47 +554,53 @@ while True:
         elif opcao_escolhida.isdigit() == True:
             if int(opcao_escolhida) <= int(contagem):
 
-                conta_escolhida = contas[int(opcao_escolhida)]
+                classe_conta_escolhida = contas[int(opcao_escolhida)]
+                conta = classe_conta_escolhida.numero_conta
+                print(f"{conta:04d}")
 
-                agora = datetime.now()
+                agora = (datetime.now())
                 opcao = input(menu).upper()
                 
-                faltam_horas,faltam_minutos = contas[int(opcao_escolhida)].teste_excessao_no_dia(agora)
+                faltam_horas,faltam_minutos = classe_conta_escolhida.teste_excessao_no_dia(agora)
 
                 texto_excedeu_transacoes = f"\nVocê excedeu o número de transações permitidas para hoje!\nlimite irá reestabelecer em {faltam_horas} horas e {faltam_minutos} minutos."
 
                 if opcao == "D":
 
-                    if conta_escolhida.dados["numero_transacao"] >= 10 :
+                    if classe_conta_escolhida.dados["numero_transacao"] >= 10 :
                         print(texto_excedeu_transacoes)
                         continue
                     print("===============================================")
                     print("\nOpção escolhida - Depositar")
                     valor = input("insira o valor para depósito: ")
-                    Deposito(valor).registrar(conta_escolhida)
+                    print(f"Valor: {valor}, conta_escolhida: {conta}")
+                    agora = str(agora)
+                    Deposito(valor).registrar(classe_conta_escolhida, agora, conta)
 
                 elif opcao =="S":
 
-                    if conta_escolhida.dados["numero_transacao"] >= 10 :
+                    if classe_conta_escolhida.dados["numero_transacao"] >= 10 :
                             print(
                     f'\nVocê excedeu o número de transações permitidas para hoje!\nlimite irá reestabelecer em {faltam_horas} horas e {faltam_minutos} minutos.')
                             continue
                     
-                    if conta_escolhida.dados["numero_saques"] >= conta_escolhida.dados["limite_saques"] :
+                    if classe_conta_escolhida.dados["numero_saques"] >= classe_conta_escolhida.dados["limite_saques"] :
                         print("Operação falhou! Você alcançou o limite diario, novo saque apenas amanhã")
 
                     else: 
                         print("\n===============================================\n")
                         print("Opção escolhida - Sacar")
-                        print(f"Seu saldo é de R$ {conta_escolhida.dados["saldo"]}\n")
+                        print(f"Seu saldo é de R$ {classe_conta_escolhida.dados["saldo"]}\n")
 
                         valor = input("Insira o valor para saque: ")
-                        Saque(valor).registrar(conta_escolhida)
+                        Saque(valor).registrar(classe_conta_escolhida)
                         #conta_escolhida.sacar(conta_escolhida)
                         #funcao_saque(dados = conta_escolhida, agora = agora)
 
                 elif opcao == "E":
-                    funcao_extrato(login_cliente, conta_escolhida)
+                    historico = Historico(opcao_escolhida) #ATENÇÃO
+                    historico.extrato(classe_conta_escolhida)
+
 
                 elif opcao == "Q":
 
