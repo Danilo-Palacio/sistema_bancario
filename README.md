@@ -146,6 +146,6 @@ contas = {
 
 Projeto desenvolvido por **Danilo Palácio** no Bootcamp **DIO & Suzano -
 Python Developer**.\
-📧 \[[LinkedIn](https://www.linkedin.com/in/danilocpalacio/)]
+📧 \[[LinkedIn](https://www.linkedin.com/in/danilo-palacio/)]
 
 ------------------------------------------------------------------------
